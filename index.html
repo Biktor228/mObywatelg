@@ -26,7 +26,9 @@
             align-items: center;
             overflow: hidden;
             position: relative;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
+        
         /* Styl dopasowujący film i ekran powitalny do pełnego ekranu */
         video, .splash-screen {
             width: 100%;
@@ -37,10 +39,10 @@
             top: 0;
             left: 0;
         }
-        /* Ekran startowy (screen) na samej górze */
+        
         .splash-screen {
             z-index: 1000;
-            transition: opacity 0.5s ease; /* Płynne znikanie screenu */
+            transition: opacity 0.5s ease;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -49,6 +51,23 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
+        }
+
+        /* Warstwa z działającym zegarem nałożona na wierzch filmu */
+        .live-clock-container {
+            position: absolute;
+            top: 7.5%; /* Pozycja pod napisem mDowód */
+            width: 100%;
+            text-align: center;
+            z-index: 900;
+            pointer-events: none;
+        }
+
+        .live-clock-text {
+            font-size: 11.5px; /* Zmniejszono rozmiar, aby pasował do oryginału */
+            color: #64748b;
+            font-weight: 500;
+            letter-spacing: -0.1px; /* Zwężono odstępy między literami */
         }
     </style>
 </head>
@@ -65,23 +84,47 @@
         Twoja przeglądarka nie obsługuje odtwarzacza wideo.
     </video>
 
+    <!-- Dynamiczny zegar cyfrowy -->
+    <div class="live-clock-container">
+        <div class="live-clock-text" id="liveClock">Czas: --:--:-- --.--.----</div>
+    </div>
+
     <script>
         let video = document.getElementById('myVideo');
         let splash = document.getElementById('splash');
 
         // Odliczanie 2 sekund przed ukryciem screenu i startem filmu
         setTimeout(() => {
-            splash.style.opacity = '0'; // Płynne ściemnianie obrazka
+            splash.style.opacity = '0';
             setTimeout(() => {
-                splash.style.display = 'none'; // Całkowite usunięcie warstwy z widoku
+                splash.style.display = 'none';
                 video.play().catch(function(error) {
-                    // Jeśli przeglądarka zablokuje autostart, kliknięcie w dowolne miejsce uruchomi film
                     document.body.addEventListener('click', () => {
                         video.play();
                     }, { once: true });
                 });
-            }, 500); // Czas trwania animacji zanikania
-        }, 2000); // Czas wyświetlania pierwszego screenu (2 sekundy)
+            }, 500);
+        }, 2000);
+
+        // Funkcja generująca aktualny czas i datę z zerami na początku
+        function updateClock() {
+            const now = new Date();
+            
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            
+            const clockString = `Czas: ${hours}:${minutes}:${seconds} ${day}.${month}.${year}`;
+            
+            document.getElementById('liveClock').textContent = clockString;
+        }
+
+        setInterval(updateClock, 1000);
+        updateClock();
     </script>
 
 </body>
