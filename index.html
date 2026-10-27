@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>mObywatel</title>
     
-    <!-- Konfiguracja ikony i pełnego ekranu dla iPhone / Android -->
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -26,12 +25,11 @@
             align-items: center;
             overflow: hidden;
             position: relative;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             user-select: none;
             -webkit-user-select: none;
         }
         
-        /* Główne sekcje aplikacji */
         .page {
             position: absolute;
             top: 0;
@@ -44,7 +42,6 @@
             z-index: 10;
         }
 
-        /* Aktywna strona */
         .page.active {
             display: flex;
         }
@@ -56,7 +53,6 @@
             background-color: #f4f5f7;
         }
 
-        /* Strefa kliknięcia dopasowana do pozycji niebieskiej karty na stronie startowej */
         .mdowod-click-zone {
             position: absolute;
             top: 20%;
@@ -67,18 +63,33 @@
             z-index: 20;
         }
 
-        /* DUŻA STREFA KLIKNIĘCIA "WRÓĆ" - CAŁY GÓRNY PASEK NAD DOKUMENTEM */
+        .global-nav-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 12vh;
+            z-index: 999999;
+            display: flex;
+        }
+        
+        .nav-zone {
+            flex: 1;
+            height: 100%;
+            cursor: pointer;
+            background-color: rgba(0, 0, 0, 0);
+        }
+
         .back-click-zone {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;      /* Zajmuje całą szerokość ekranu od lewej do prawej */
-            height: 13vh;     /* Pokrywa cały górny biały nagłówek */
+            width: 100%;
+            height: 13vh;
             cursor: pointer;
-            z-index: 999;     /* Warstwa bezpośrednio nad wideo, łatwa do kliknięcia */
+            z-index: 999;
         }
 
-        /* Biały ekran ładowania */
         .white-loader-screen {
             position: absolute;
             top: 0;
@@ -86,13 +97,12 @@
             width: 100%;
             height: 100vh;
             background-color: #ffffff;
-            z-index: 9999;
+            z-index: 9999999;
             display: none;
             justify-content: center;
             align-items: center;
         }
 
-        /* Kontener paska ładowania na środku */
         .loader-container {
             width: 65%;
             max-width: 220px;
@@ -102,7 +112,6 @@
             overflow: hidden;
         }
 
-        /* Animowany niebieski pasek postępu */
         .loader-bar {
             width: 100%;
             height: 100%;
@@ -111,8 +120,10 @@
             transform: scaleX(0);
         }
 
-        /* Klasa uruchamiająca animację paska */
-        .animate-bar {
+        .animate-bar-1s {
+            animation: loadingAnimation 1s linear forwards;
+        }
+        .animate-bar-2s {
             animation: loadingAnimation 2s linear forwards;
         }
 
@@ -121,14 +132,13 @@
             100% { transform: scaleX(1); }
         }
 
-        /* Warstwa z działającym zegarem nałożona na wierzch filmu */
         .live-clock-container {
             position: absolute;
             top: 7.5%;
             width: 100%;
             text-align: center;
             z-index: 25;
-            pointer-events: none; /* Ignoruje dotyk, przekazuje go do strefy pod spodem */
+            pointer-events: none;
         }
 
         .live-clock-text {
@@ -141,28 +151,31 @@
 </head>
 <body>
 
-    <!-- STRONA 1: Ekran startowy (niebieska karta) -->
-    <div class="page active" id="pageStart">
-        <img src="poczatek.png" alt="Ekran początkowy">
-        <div class="mdowod-click-zone" onclick="uruchomProces(true)"></div>
+    <div class="global-nav-container" id="globalNav">
+        <!-- Dodano sprawdzenie warunku czy klikasz w zakładkę, na której już stoisz -->
+        <div class="nav-zone" onclick="if(!pageStart.classList.contains('active')) uruchomProces('start', 1000);"></div>
+        <div class="nav-zone" onclick="if(!pageServices.classList.contains('active')) uruchomProces('services', 1000);"></div>
     </div>
 
-    <!-- STRONA 2: Ekran z filmem i zegarem -->
+    <div class="page active" id="pageStart" style="display: flex;">
+        <img src="poczatek.png" alt="Ekran początkowy">
+        <div class="mdowod-click-zone" onclick="uruchomProces('document', 2000)"></div>
+    </div>
+
     <div class="page" id="pageDocument">
-        <!-- Kliknięcie gdziekolwiek w górną część ekranu (napisy mDowód / Wróć) cofnie użytkownika -->
-        <div class="back-click-zone" onclick="uruchomProces(false)"></div>
-        
+        <div class="back-click-zone" onclick="uruchomProces('start', 2000)"></div>
         <video loop muted playsinline id="myVideo">
             <source src="film.mp4" type="video/mp4">
-            Twoja przeglądarka nie obsługuje odtwarzacza wideo.
         </video>
-
         <div class="live-clock-container">
             <div class="live-clock-text" id="liveClock">Czas: --:--:-- --.--.----</div>
         </div>
     </div>
 
-    <!-- EKRAN ŁADOWANIA -->
+    <div class="page" id="pageServices">
+        <img src="uslugi.png" alt="Usługi">
+    </div>
+
     <div class="white-loader-screen" id="whiteScreen">
         <div class="loader-container">
             <div class="loader-bar" id="loaderBar"></div>
@@ -173,36 +186,58 @@
         let video = document.getElementById('myVideo');
         let pageStart = document.getElementById('pageStart');
         let pageDocument = document.getElementById('pageDocument');
+        let pageServices = document.getElementById('pageServices');
         let whiteScreen = document.getElementById('whiteScreen');
         let loaderBar = document.getElementById('loaderBar');
+        let globalNav = document.getElementById('globalNav');
 
-        function uruchomProces(wchodzenie) {
-            loaderBar.classList.remove('animate-bar');
+        function uruchomProces(cel, czasMs) {
+            loaderBar.classList.remove('animate-bar-1s', 'animate-bar-2s');
             void loaderBar.offsetWidth; 
             
             whiteScreen.style.display = 'flex';
-            loaderBar.classList.add('animate-bar');
+            if (czasMs === 1000) {
+                loaderBar.classList.add('animate-bar-1s');
+            } else {
+                loaderBar.classList.add('animate-bar-2s');
+            }
 
-            if (!wchodzenie) {
+            globalNav.style.display = 'none';
+
+            if (video.currentTime > 0) {
                 video.pause();
                 video.currentTime = 0;
             }
 
             setTimeout(() => {
-                if (wchodzenie) {
-                    pageStart.classList.remove('active');
+                pageStart.classList.remove('active');
+                pageDocument.classList.remove('active');
+                pageServices.classList.remove('active');
+                
+                pageStart.style.display = 'none';
+                pageDocument.style.display = 'none';
+                pageServices.style.display = 'none';
+
+                if (cel === 'document') {
+                    pageDocument.style.display = 'flex';
                     pageDocument.classList.add('active');
-                    video.play().catch(e => console.log("Autostart zablokowany"));
-                } else {
-                    pageDocument.classList.remove('active');
+                    video.play().catch(e => console.log("Video block"));
+                } else if (cel === 'start') {
+                    pageStart.style.display = 'flex';
                     pageStart.classList.add('active');
+                    globalNav.style.display = 'flex';
+                } else if (cel === 'services') {
+                    pageServices.style.display = 'flex';
+                    pageServices.classList.add('active');
+                    globalNav.style.display = 'flex';
                 }
 
                 whiteScreen.style.display = 'none';
-            }, 2000);
+            }, czasMs);
         }
 
-        // Zegar systemowy
+        globalNav.style.display = 'flex';
+
         function updateClock() {
             const now = new Date();
             const hours = String(now.getHours()).padStart(2, '0');
