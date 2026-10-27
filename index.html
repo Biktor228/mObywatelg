@@ -27,99 +27,192 @@
             overflow: hidden;
             position: relative;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
         }
         
-        /* Styl dopasowujący film i ekran powitalny do pełnego ekranu */
-        video, .splash-screen {
+        /* Główne sekcje aplikacji */
+        .page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        /* Aktywna strona */
+        .page.active {
+            display: flex;
+        }
+
+        img, video {
             width: 100%;
             height: 100vh;
             object-fit: contain;
             background-color: #f4f5f7;
+        }
+
+        /* Strefa kliknięcia dopasowana do pozycji niebieskiej karty na stronie startowej */
+        .mdowod-click-zone {
+            position: absolute;
+            top: 20%;
+            left: 6%;
+            width: 88%;
+            height: 28vh;
+            cursor: pointer;
+            z-index: 20;
+        }
+
+        /* DUŻA STREFA KLIKNIĘCIA "WRÓĆ" - CAŁY GÓRNY PASEK NAD DOKUMENTEM */
+        .back-click-zone {
             position: absolute;
             top: 0;
             left: 0;
+            width: 100%;      /* Zajmuje całą szerokość ekranu od lewej do prawej */
+            height: 13vh;     /* Pokrywa cały górny biały nagłówek */
+            cursor: pointer;
+            z-index: 999;     /* Warstwa bezpośrednio nad wideo, łatwa do kliknięcia */
         }
-        
-        .splash-screen {
-            z-index: 1000;
-            transition: opacity 0.5s ease;
-            display: flex;
+
+        /* Biały ekran ładowania */
+        .white-loader-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background-color: #ffffff;
+            z-index: 9999;
+            display: none;
             justify-content: center;
             align-items: center;
         }
-        .splash-screen img {
+
+        /* Kontener paska ładowania na środku */
+        .loader-container {
+            width: 65%;
+            max-width: 220px;
+            height: 4px;
+            background-color: rgba(0, 0, 0, 0.05);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        /* Animowany niebieski pasek postępu */
+        .loader-bar {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            background-color: #0284c7;
+            transform-origin: left;
+            transform: scaleX(0);
+        }
+
+        /* Klasa uruchamiająca animację paska */
+        .animate-bar {
+            animation: loadingAnimation 2s linear forwards;
+        }
+
+        @keyframes loadingAnimation {
+            0% { transform: scaleX(0); }
+            100% { transform: scaleX(1); }
         }
 
         /* Warstwa z działającym zegarem nałożona na wierzch filmu */
         .live-clock-container {
             position: absolute;
-            top: 7.5%; /* Pozycja pod napisem mDowód */
+            top: 7.5%;
             width: 100%;
             text-align: center;
-            z-index: 900;
-            pointer-events: none;
+            z-index: 25;
+            pointer-events: none; /* Ignoruje dotyk, przekazuje go do strefy pod spodem */
         }
 
         .live-clock-text {
-            font-size: 11.5px; /* Zmniejszono rozmiar, aby pasował do oryginału */
+            font-size: 11.5px;
             color: #64748b;
             font-weight: 500;
-            letter-spacing: -0.1px; /* Zwężono odstępy między literami */
+            letter-spacing: -0.1px;
         }
     </style>
 </head>
 <body>
 
-    <!-- Ekran startowy ze zrzutem ekranu o nazwie poczatek.png -->
-    <div class="splash-screen" id="splash">
+    <!-- STRONA 1: Ekran startowy (niebieska karta) -->
+    <div class="page active" id="pageStart">
         <img src="poczatek.png" alt="Ekran początkowy">
+        <div class="mdowod-click-zone" onclick="uruchomProces(true)"></div>
     </div>
 
-    <!-- Odtwarzacz wideo pod spodem -->
-    <video loop muted playsinline id="myVideo">
-        <source src="film.mp4" type="video/mp4">
-        Twoja przeglądarka nie obsługuje odtwarzacza wideo.
-    </video>
+    <!-- STRONA 2: Ekran z filmem i zegarem -->
+    <div class="page" id="pageDocument">
+        <!-- Kliknięcie gdziekolwiek w górną część ekranu (napisy mDowód / Wróć) cofnie użytkownika -->
+        <div class="back-click-zone" onclick="uruchomProces(false)"></div>
+        
+        <video loop muted playsinline id="myVideo">
+            <source src="film.mp4" type="video/mp4">
+            Twoja przeglądarka nie obsługuje odtwarzacza wideo.
+        </video>
 
-    <!-- Dynamiczny zegar cyfrowy -->
-    <div class="live-clock-container">
-        <div class="live-clock-text" id="liveClock">Czas: --:--:-- --.--.----</div>
+        <div class="live-clock-container">
+            <div class="live-clock-text" id="liveClock">Czas: --:--:-- --.--.----</div>
+        </div>
+    </div>
+
+    <!-- EKRAN ŁADOWANIA -->
+    <div class="white-loader-screen" id="whiteScreen">
+        <div class="loader-container">
+            <div class="loader-bar" id="loaderBar"></div>
+        </div>
     </div>
 
     <script>
         let video = document.getElementById('myVideo');
-        let splash = document.getElementById('splash');
+        let pageStart = document.getElementById('pageStart');
+        let pageDocument = document.getElementById('pageDocument');
+        let whiteScreen = document.getElementById('whiteScreen');
+        let loaderBar = document.getElementById('loaderBar');
 
-        // Odliczanie 2 sekund przed ukryciem screenu i startem filmu
-        setTimeout(() => {
-            splash.style.opacity = '0';
+        function uruchomProces(wchodzenie) {
+            loaderBar.classList.remove('animate-bar');
+            void loaderBar.offsetWidth; 
+            
+            whiteScreen.style.display = 'flex';
+            loaderBar.classList.add('animate-bar');
+
+            if (!wchodzenie) {
+                video.pause();
+                video.currentTime = 0;
+            }
+
             setTimeout(() => {
-                splash.style.display = 'none';
-                video.play().catch(function(error) {
-                    document.body.addEventListener('click', () => {
-                        video.play();
-                    }, { once: true });
-                });
-            }, 500);
-        }, 2000);
+                if (wchodzenie) {
+                    pageStart.classList.remove('active');
+                    pageDocument.classList.add('active');
+                    video.play().catch(e => console.log("Autostart zablokowany"));
+                } else {
+                    pageDocument.classList.remove('active');
+                    pageStart.classList.add('active');
+                }
 
-        // Funkcja generująca aktualny czas i datę z zerami na początku
+                whiteScreen.style.display = 'none';
+            }, 2000);
+        }
+
+        // Zegar systemowy
         function updateClock() {
             const now = new Date();
-            
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const seconds = String(now.getSeconds()).padStart(2, '0');
-            
             const day = String(now.getDate()).padStart(2, '0');
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const year = now.getFullYear();
             
             const clockString = `Czas: ${hours}:${minutes}:${seconds} ${day}.${month}.${year}`;
-            
             document.getElementById('liveClock').textContent = clockString;
         }
 
